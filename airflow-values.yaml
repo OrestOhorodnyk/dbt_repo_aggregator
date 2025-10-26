@@ -1,0 +1,133 @@
+executor: KubernetesExecutor
+
+fernetKey: "z18LcO61ndDxxw6doJFpKbU/00xu9xd+rmH5Jo0u66A="
+webserverSecretKey: "uMfJGfu+wyyfw0NRz1x1rOeldetb+oRKr9lJxuZB+XI="
+
+airflow:
+  config:
+    core:
+      base_log_folder: /opt/airflow/local_logs
+      remote_logging: "False"
+      dag_dir_list_interval: 10
+    kubernetes:
+      worker_pods_log_fetch_method: "ip"
+      use_local_logs: true
+      delete_worker_pods: true
+      worker_pods_creation_batch_size: 1
+      worker_pods_pending_timeout: 300
+      logs_volume_subpath: ""
+
+connections:
+  - conn_id: postgres_dbt
+    conn_type: postgres
+    conn_host: postgres-service
+    conn_login: dbt
+    conn_password: dbt
+    conn_schema: analytics
+    conn_port: 5432
+
+  - conn_id: kubernetes_default
+    conn_type: kubernetes
+    conn_extra: '{"in_cluster": true, "namespace": "airflow"}'
+
+# ───────────── DAG + LOG host mounts ─────────────
+web:
+  extraVolumes:
+    - name: dags-local
+      hostPath:
+        path: /Users/o.ohorodnyk/airflow-dags/dags
+        type: DirectoryOrCreate
+    - name: local-logs
+      hostPath:
+        path: /Users/o.ohorodnyk/airflow-dags/airflow_logs
+        type: DirectoryOrCreate
+  extraVolumeMounts:
+    - name: dags-local
+      mountPath: /opt/airflow/dags
+      readOnly: true
+    - name: local-logs
+      mountPath: /opt/airflow/local_logs
+
+scheduler:
+  extraVolumes:
+    - name: dags-local
+      hostPath:
+        path: /Users/o.ohorodnyk/airflow-dags/dags
+        type: DirectoryOrCreate
+    - name: local-logs
+      hostPath:
+        path: /Users/o.ohorodnyk/airflow-dags/airflow_logs
+        type: DirectoryOrCreate
+  extraVolumeMounts:
+    - name: dags-local
+      mountPath: /opt/airflow/dags
+      readOnly: true
+    - name: local-logs
+      mountPath: /opt/airflow/local_logs
+
+dagProcessor:
+  extraVolumes:
+    - name: dags-local
+      hostPath:
+        path: /Users/o.ohorodnyk/airflow-dags/dags
+        type: DirectoryOrCreate
+    - name: local-logs
+      hostPath:
+        path: /Users/o.ohorodnyk/airflow-dags/airflow_logs
+        type: DirectoryOrCreate
+  extraVolumeMounts:
+    - name: dags-local
+      mountPath: /opt/airflow/dags
+      readOnly: true
+    - name: local-logs
+      mountPath: /opt/airflow/local_logs
+
+triggerer:
+  extraVolumes:
+    - name: dags-local
+      hostPath:
+        path: /Users/o.ohorodnyk/airflow-dags/dags
+        type: DirectoryOrCreate
+    - name: local-logs
+      hostPath:
+        path: /Users/o.ohorodnyk/airflow-dags/airflow_logs
+        type: DirectoryOrCreate
+  extraVolumeMounts:
+    - name: dags-local
+      mountPath: /opt/airflow/dags
+      readOnly: true
+    - name: local-logs
+      mountPath: /opt/airflow/local_logs
+
+workers:
+  extraVolumes:
+    - name: dags-local
+      hostPath:
+        path: /Users/o.ohorodnyk/airflow-dags/dags
+        type: DirectoryOrCreate
+    - name: local-logs
+      hostPath:
+        path: /Users/o.ohorodnyk/airflow-dags/airflow_logs
+        type: DirectoryOrCreate
+  extraVolumeMounts:
+    - name: dags-local
+      mountPath: /opt/airflow/dags
+      readOnly: true
+    - name: local-logs
+      mountPath: /opt/airflow/local_logs
+
+# PostgreSQL
+postgresql:
+  image:
+    repository: bitnami/postgresql
+    tag: "latest"
+  persistence:
+    enabled: true
+    size: 5Gi
+  volumePermissions:
+    enabled: false
+
+# Disable internal PVC for logs (we use hostPath instead)
+logs:
+  persistence:
+    enabled: false
