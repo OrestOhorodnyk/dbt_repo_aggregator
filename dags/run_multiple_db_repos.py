@@ -9,6 +9,44 @@ from airflow.operators.python import PythonOperator
 from cosmos import DbtTaskGroup, ProfileConfig, ProjectConfig, ExecutionConfig
 from cosmos.profiles import PostgresUserPasswordProfileMapping
 
+# Kubernetes executor config to install packages
+K8S_EXECUTOR_CONFIG = {
+    "pod_override": {
+        "spec": {
+            "initContainers": [{
+                "name": "install-packages",
+                "image": "apache/airflow:3.0.6",
+                "command": ["/bin/bash", "-c"],
+                "args": [
+                    "pip install --target /shared-packages --no-deps astronomer-cosmos==1.11.0 && "
+                    "pip install --target /shared-packages aenum deprecation msgpack pydantic && "
+                    "pip install --target /shared-packages dbt-core==1.8.8 dbt-postgres==1.8.2 && "
+                    "echo 'Packages installed'"
+                ],
+                "volumeMounts": [{
+                    "name": "shared-packages",
+                    "mountPath": "/shared-packages"
+                }]
+            }],
+            "containers": [{
+                "name": "base",
+                "env": [{
+                    "name": "PYTHONPATH",
+                    "value": "/shared-packages:/home/airflow/.local/lib/python3.12/site-packages"
+                }],
+                "volumeMounts": [{
+                    "name": "shared-packages",
+                    "mountPath": "/shared-packages"
+                }]
+            }],
+            "volumes": [{
+                "name": "shared-packages",
+                "emptyDir": {}
+            }]
+        }
+    }
+}
+
 
 # --- DBT Project Configurations (submodules under /opt/airflow/dags) ---
 DBT_PROJECTS = {
@@ -60,6 +98,7 @@ with DAG(
     test_postgres = PythonOperator(
         task_id="test_postgres_connection",
         python_callable=test_postgres_conn,
+        executor_config=K8S_EXECUTOR_CONFIG,
     )
 
     # Dynamically create a DbtTaskGroup for each submodule
