@@ -70,7 +70,7 @@ with DAG(
             group_id=project_name,
             project_config=ProjectConfig(
                 project_name=project_name,
-                project_path=project_path,
+                dbt_project_path=project_path,
             ),
             profile_config=profile_config,
             execution_config=execution_config,
