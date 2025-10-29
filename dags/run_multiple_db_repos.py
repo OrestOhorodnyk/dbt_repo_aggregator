@@ -12,8 +12,8 @@ from cosmos.profiles import PostgresUserPasswordProfileMapping
 
 # --- DBT Project Configurations (submodules under /opt/airflow/dags) ---
 DBT_PROJECTS = {
-    "dbt_repo_1": "/opt/airflow/dags/repo/dags/dbt_repo_1/postgres_dbt_project",
-    "dbt_repo_2": "/opt/airflow/dags/repo/dags/dbt_repo_2/sales_dbt_project",
+    "dbt_repo_1": "/opt/airflow/dags/dbt_repo_1",
+    "dbt_repo_2": "/opt/airflow/dags/dbt_repo_2",
 }
 
 # --- DBT Profile Configuration (shared for all projects) ---
@@ -70,7 +70,7 @@ with DAG(
             group_id=project_name,
             project_config=ProjectConfig(
                 project_name=project_name,
-                dbt_project_path=project_path,
+                project_path=project_path,
             ),
             profile_config=profile_config,
             execution_config=execution_config,
