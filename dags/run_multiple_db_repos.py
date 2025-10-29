@@ -29,7 +29,7 @@ profile_config = ProfileConfig(
 # --- Optional: dbt execution settings ---
 execution_config = ExecutionConfig(
     dbt_executable_path="/usr/local/bin/dbt",  # path inside your image
-    retries=1,
+    # Note: retries should be set at the task level, not in ExecutionConfig
 )
 
 # --- Test PostgreSQL connectivity before running dbt ---
