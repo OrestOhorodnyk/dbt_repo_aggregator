@@ -22,6 +22,9 @@ helm upgrade --install airflow apache-airflow/airflow \
   --create-namespace \
   --timeout 15m
 
+# Deploy postgres Db for testing models
+kubectl apply -f postgres-deployment.yaml -n airflow
+
 # Watch pods
 kubectl get pods -n airflow --watch
 ```
@@ -29,7 +32,7 @@ kubectl get pods -n airflow --watch
 ## Access
 ```bash
 # Airflow UI (webserver service name may vary by chart version)
-kubectl port-forward -n airflow svc/airflow-webserver 8080:8080
+kubectl port-forward svc/airflow-api-server 8080:8080 --namespace airflow
 
 # Optional: Postgres port-forward
 kubectl port-forward -n airflow svc/postgres-service 5432:5432
