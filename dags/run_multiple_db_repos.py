@@ -43,7 +43,6 @@ def test_postgres_conn(**kwargs):
     cursor.execute("SELECT version();")
     version = cursor.fetchone()
     logging.info(f"✅ Connected successfully! PostgreSQL version: {version}")
-    # Debug sleep removed
     cursor.close()
     conn.close()
 

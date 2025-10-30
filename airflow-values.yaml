@@ -13,21 +13,12 @@ images:
     pullPolicy: IfNotPresent
 
 airflow:
-#   requirements:
-#     enabled: true
-#     dependencies:
-#       - astronomer-cosmos==1.11.0
-#       - dbt-core==1.8.8
-#       - dbt-postgres==1.8.2
-
   config:
     core:
       base_log_folder: /opt/airflow/local_logs
       remote_logging: "False"
       dag_dir_list_interval: 10
     kubernetes:
-      # Temporarily set to false to debug task failures (pods will remain after completion)
-      # Note: Set back to true for production to avoid pod accumulation
       worker_pods_log_fetch_method: "pod"
       enable_task_log_server: "False"
       use_local_logs: true
@@ -50,6 +41,9 @@ dags:
     depth: 1
     wait: 10
     maxFailures: 0
+    env:
+      - name: GIT_SYNC_SUBMODULES
+        value: "recursive"
 
 
     # If repo is private, mount a secret or SSH key
