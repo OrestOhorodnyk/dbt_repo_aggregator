@@ -3,10 +3,16 @@ executor: KubernetesExecutor
 fernetKey: "z18LcO61ndDxxw6doJFpKbU/00xu9xd+rmH5Jo0u66A="
 webserverSecretKey: "uMfJGfu+wyyfw0NRz1x1rOeldetb+oRKr9lJxuZB+XI="
 
+# Use latest Airflow version (3.0.6 as of Oct 2025)
+defaultAirflowTag: "3.0.6"
+
 airflow:
   requirements:
     enabled: true
-    path: /opt/airflow/dags/requirements.txt
+    dependencies:
+      - astronomer-cosmos==1.11.0
+      - dbt-core==1.8.8
+      - dbt-postgres==1.8.2
 
   config:
     core:
@@ -14,12 +20,18 @@ airflow:
       remote_logging: "False"
       dag_dir_list_interval: 10
     kubernetes:
-      worker_pods_log_fetch_method: "ip"
+      # Temporarily set to false to debug task failures (pods will remain after completion)
+      # Note: Set back to true for production to avoid pod accumulation
+      worker_pods_log_fetch_method: "pod"
       use_local_logs: true
-      delete_worker_pods: true
+      delete_worker_pods: false  # Changed to false for debugging
       worker_pods_creation_batch_size: 1
       worker_pods_pending_timeout: 300
       logs_volume_subpath: ""
+    # Environment variables for worker pods to install packages
+    environment: 
+      - name: _PIP_ADDITIONAL_REQUIREMENTS
+        value: "astronomer-cosmos==1.11.0 dbt-core==1.8.8 dbt-postgres==1.8.2 aenum deprecation msgpack pydantic"
 
 
 # ───────────── DAG Synchronization (gitSync) ─────────────
@@ -52,7 +64,38 @@ connections:
 
   - conn_id: kubernetes_default
     conn_type: kubernetes
-    conn_extra: '{"in_cluster": true, "namespace": "airflow"}'
+    conn_extra:
+      in_cluster: "true"
+      namespace: airflow
+      pod_override:
+        spec:
+          initContainers:
+            - name: install-packages
+              image: apache/airflow:3.0.6
+              command: ["/bin/bash", "-c"]
+              args:
+                - |
+                  pip install --target /shared-packages --no-deps astronomer-cosmos==1.11.0 && \
+                  pip install --target /shared-packages aenum deprecation msgpack pydantic && \
+                  pip install --target /shared-packages dbt-core==1.8.8 dbt-postgres==1.8.2 && \
+                  echo "Packages installed successfully"
+              volumeMounts:
+                - name: shared-packages
+                  mountPath: /shared-packages
+          containers:
+            - name: base
+              env:
+                - name: PYTHONPATH
+                  value: /shared-packages:/home/airflow/.local/lib/python3.12/site-packages
+              volumeMounts:
+                - name: shared-packages
+                  mountPath: /shared-packages
+          volumes:
+            - name: shared-packages
+              emptyDir: {}
+
+# ───────────── API Server (enabled for Airflow 3.0+) ─────────────
+# API Server is available in Airflow 3.0+, no need to disable
 
 # ───────────── LOG host mounts ─────────────
 web:
@@ -74,6 +117,18 @@ scheduler:
   extraVolumeMounts:
     - name: local-logs
       mountPath: /opt/airflow/local_logs
+  command: ["/bin/bash", "-c"]
+  args:
+    - |
+      # Install uv if not present, then use it to install packages
+      if ! command -v uv &> /dev/null; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        export PATH="$HOME/.cargo/bin:$PATH"
+      fi
+      uv pip install --no-deps astronomer-cosmos==1.11.0 || pip install --no-deps astronomer-cosmos==1.11.0
+      uv pip install aenum deprecation msgpack pydantic || pip install aenum deprecation msgpack pydantic
+      uv pip install dbt-core==1.8.8 dbt-postgres==1.8.2 || pip install dbt-core==1.8.8 dbt-postgres==1.8.2
+      exec airflow scheduler
 
 dagProcessor:
   extraVolumes:
@@ -84,6 +139,18 @@ dagProcessor:
   extraVolumeMounts:
     - name: local-logs
       mountPath: /opt/airflow/local_logs
+  command: ["/bin/bash", "-c"]
+  args:
+    - |
+      # Install uv if not present, then use it to install packages
+      if ! command -v uv &> /dev/null; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        export PATH="$HOME/.cargo/bin:$PATH"
+      fi
+      uv pip install --no-deps astronomer-cosmos==1.11.0 || pip install --no-deps astronomer-cosmos==1.11.0
+      uv pip install aenum deprecation msgpack pydantic || pip install aenum deprecation msgpack pydantic
+      uv pip install dbt-core==1.8.8 dbt-postgres==1.8.2 || pip install dbt-core==1.8.8 dbt-postgres==1.8.2
+      exec airflow dag-processor
 
 triggerer:
   extraVolumes:
@@ -96,14 +163,11 @@ triggerer:
       mountPath: /opt/airflow/local_logs
 
 workers:
-  extraVolumes:
-    - name: local-logs
-      hostPath:
-        path: /Users/o.ohorodnyk/airflow-dags/airflow_logs
-        type: DirectoryOrCreate
-  extraVolumeMounts:
-    - name: local-logs
-      mountPath: /opt/airflow/local_logs
+  # Note: With KubernetesExecutor, Celery workers are not used (worker pods are ephemeral)
+  # This section is kept for Helm chart compatibility
+  replicas: 1
+  serviceAccount:
+    create: true
 
 # ───────────── PostgreSQL ─────────────
 postgresql:
@@ -116,7 +180,7 @@ postgresql:
   volumePermissions:
     enabled: false
 
-# ───────────── Disable internal PVC for logs ─────────────
+# ───────────── Disable PVC logs (using hostPath instead due to local-path ReadWriteOnce limitation) ─────────────
 logs:
   persistence:
     enabled: false
