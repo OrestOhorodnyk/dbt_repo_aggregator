@@ -98,3 +98,9 @@ kubectl logs -n airflow <pod-name> -c base --tail=500
 helm uninstall airflow -n airflow
 kubectl delete namespace airflow
 ```
+
+## Refresh submodules 
+git submodule foreach git pull origin main
+git add dags/dbt_repo_2
+git commit -m "Update dbt_repo_2 submodule pointer after new commit"
+git push origin cosmos
