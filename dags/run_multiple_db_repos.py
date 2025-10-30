@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pendulum
+import time
 from pathlib import Path
 import logging
 from airflow.models import DAG
@@ -43,6 +44,8 @@ def test_postgres_conn(**kwargs):
     cursor.execute("SELECT version();")
     version = cursor.fetchone()
     logging.info(f"✅ Connected successfully! PostgreSQL version: {version}")
+    logging.info("Sleeping 180 seconds to allow log inspection and debugging...")
+    time.sleep(180)
     cursor.close()
     conn.close()
 
