@@ -1,0 +1,70 @@
+# -------------------------------------------------------------------
+# dbt Project Configuration
+# -------------------------------------------------------------------
+
+name: 'postgres_dbt_project'
+version: '1.0.0'
+config-version: 2  # Always include this for dbt v1+
+
+# The profile name that dbt uses to connect to your database
+profile: 'postgres_dbt'
+
+# -------------------------------------------------------------------
+# File Locations
+# -------------------------------------------------------------------
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+# Clean directories
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# -------------------------------------------------------------------
+# Model Configuration
+# -------------------------------------------------------------------
+models:
+  postgres_dbt_project:
+    silver:
+      +schema: silver
+      +materialized: view
+    gold:
+      +schema: gold
+      +materialized: table
+
+# -------------------------------------------------------------------
+# Seed Configuration (for dbt seed command)
+# -------------------------------------------------------------------
+seeds:
+  postgres_dbt_project:
+    +schema: bronze
+    +quote_columns: false
+    customers:
+      +column_types:
+        id: integer
+        first_name: text
+        last_name: text
+        country: text
+    orders:
+      +column_types:
+        id: integer
+        customer_id: integer
+        amount: numeric
+        order_date: date
+    products:
+      +column_types:
+        product_id: integer
+        product_name: text
+        category: text
+        price: numeric
+    order_items:
+      +column_types:
+        order_item_id: integer
+        order_id: integer
+        product_id: integer
+        quantity: integer
+

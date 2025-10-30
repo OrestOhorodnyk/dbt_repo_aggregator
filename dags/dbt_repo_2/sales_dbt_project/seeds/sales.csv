@@ -1,0 +1,6 @@
+order_id,customer_id,product,quantity,price,order_date
+1,101,Chair,2,150.00,2024-06-01
+2,102,Desk,1,450.00,2024-06-03
+3,103,Lamp,3,75.00,2024-06-05
+4,101,Monitor,1,300.00,2024-06-07
+5,104,Cable,5,25.00,2024-06-10

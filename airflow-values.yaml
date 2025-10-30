@@ -39,7 +39,7 @@ dags:
   gitSync:
     enabled: true
     repo: "https://github.com/OrestOhorodnyk/dbt_repo_aggregator.git"
-    branch: "dev"
+    branch: "cosmos"
     subPath: "dags"
     rev: "HEAD"
     depth: 1

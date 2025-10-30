@@ -1,0 +1,13 @@
+sales_dbt:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('DBT_HOST', 'postgres-service') }}"
+      user: "{{ env_var('DBT_USER', 'dbt') }}"
+      password: "{{ env_var('DBT_PASS', 'dbt') }}"
+      port: "{{ env_var('DBT_PORT', '5432') | int }}"
+      dbname: "{{ env_var('DBT_DBNAME', 'analytics') }}"
+      schema: "{{ env_var('DBT_SCHEMA_SALES', 'sales') }}"
+      threads: 4
+      keepalives_idle: 0

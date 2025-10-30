@@ -1,0 +1,3 @@
+# Core dbt and PostgreSQL adapter
+dbt-core
+dbt-postgres

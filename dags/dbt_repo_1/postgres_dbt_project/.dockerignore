@@ -1,0 +1,7 @@
+.git
+target
+dbt_packages
+__pycache__
+*.pyc
+.DS_Store
+.env
