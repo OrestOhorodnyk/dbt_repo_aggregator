@@ -17,6 +17,17 @@ airflow:
       worker_pods_pending_timeout: 300
       logs_volume_subpath: ""
 
+dags:
+  gitSync:
+    enabled: true
+    repo: "https://github.com/OrestOhorodnyk/dbt_repo_aggregator.git"
+    branch: "cosmos"
+    subPath: "dags"
+    rev: "HEAD"
+    depth: 1
+    wait: 10
+    maxFailures: 0
+
 connections:
   - conn_id: postgres_dbt
     conn_type: postgres
