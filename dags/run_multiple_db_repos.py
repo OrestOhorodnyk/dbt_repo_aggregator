@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pendulum
+from pathlib import Path
 import logging
 from airflow.models import DAG
 from airflow.operators.empty import EmptyOperator
@@ -10,10 +11,11 @@ from cosmos import DbtTaskGroup, ProfileConfig, ProjectConfig, ExecutionConfig
 from cosmos.profiles import PostgresUserPasswordProfileMapping
 
 
-# --- DBT Project Configurations (when gitSync subPath is "dags", projects live under /opt/airflow/dags) ---
+# --- DBT Project Configurations (resolve relative to this DAG file to handle .worktrees links) ---
+BASE_DIR = Path(__file__).resolve().parent
 DBT_PROJECTS = {
-    "dbt_repo_1": "/opt/airflow/dags/dbt_repo_1/postgres_dbt_project",
-    "dbt_repo_2": "/opt/airflow/dags/dbt_repo_2/sales_dbt_project",
+    "dbt_repo_1": str(BASE_DIR / "dbt_repo_1/postgres_dbt_project"),
+    "dbt_repo_2": str(BASE_DIR / "dbt_repo_2/sales_dbt_project"),
 }
 
 # --- DBT Profile Configuration (shared for all projects) ---
