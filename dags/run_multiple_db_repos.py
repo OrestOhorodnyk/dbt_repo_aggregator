@@ -28,7 +28,7 @@ profile_config = ProfileConfig(
 
 # --- Optional: dbt execution settings ---
 execution_config = ExecutionConfig(
-    dbt_executable_path="/usr/local/bin/dbt",  # path inside your image
+    dbt_executable_path="/home/airflow/.local/bin/dbt",  # default pip user bin in official images
 )
 
 # --- Test PostgreSQL connectivity before running dbt ---

@@ -4,6 +4,17 @@ fernetKey: "z18LcO61ndDxxw6doJFpKbU/00xu9xd+rmH5Jo0u66A="
 webserverSecretKey: "uMfJGfu+wyyfw0NRz1x1rOeldetb+oRKr9lJxuZB+XI="
 
 airflow:
+  requirements:
+    enabled: true
+    path: /opt/airflow/dags/requirements.txt
+  extraPipPackages:
+    - astronomer-cosmos==1.11.0
+    - dbt-core==1.8.8
+    - dbt-postgres==1.8.2
+    - aenum
+    - deprecation
+    - msgpack
+    - pydantic
   config:
     core:
       base_log_folder: /opt/airflow/local_logs
@@ -22,7 +33,7 @@ dags:
     enabled: true
     repo: "https://github.com/OrestOhorodnyk/dbt_repo_aggregator.git"
     branch: "cosmos"
-    subPath: "dags"
+    subPath: "."
     rev: "HEAD"
     depth: 1
     wait: 10
@@ -43,87 +54,61 @@ connections:
 
 # ───────────── DAG + LOG host mounts ─────────────
 web:
+  env:
+    - name: _PIP_ADDITIONAL_REQUIREMENTS
+      value: "astronomer-cosmos==1.11.0 dbt-core==1.8.8 dbt-postgres==1.8.2 aenum deprecation msgpack pydantic"
   extraVolumes:
-    - name: dags-local
-      hostPath:
-        path: /Users/o.ohorodnyk/airflow-dags/dags
-        type: DirectoryOrCreate
     - name: local-logs
       hostPath:
         path: /Users/o.ohorodnyk/airflow-dags/airflow_logs
         type: DirectoryOrCreate
   extraVolumeMounts:
-    - name: dags-local
-      mountPath: /opt/airflow/dags
-      readOnly: true
     - name: local-logs
       mountPath: /opt/airflow/local_logs
 
 scheduler:
+  env:
+    - name: _PIP_ADDITIONAL_REQUIREMENTS
+      value: "astronomer-cosmos==1.11.0 dbt-core==1.8.8 dbt-postgres==1.8.2 aenum deprecation msgpack pydantic"
   extraVolumes:
-    - name: dags-local
-      hostPath:
-        path: /Users/o.ohorodnyk/airflow-dags/dags
-        type: DirectoryOrCreate
     - name: local-logs
       hostPath:
         path: /Users/o.ohorodnyk/airflow-dags/airflow_logs
         type: DirectoryOrCreate
   extraVolumeMounts:
-    - name: dags-local
-      mountPath: /opt/airflow/dags
-      readOnly: true
     - name: local-logs
       mountPath: /opt/airflow/local_logs
 
 dagProcessor:
+  env:
+    - name: _PIP_ADDITIONAL_REQUIREMENTS
+      value: "astronomer-cosmos==1.11.0 dbt-core==1.8.8 dbt-postgres==1.8.2 aenum deprecation msgpack pydantic"
   extraVolumes:
-    - name: dags-local
-      hostPath:
-        path: /Users/o.ohorodnyk/airflow-dags/dags
-        type: DirectoryOrCreate
     - name: local-logs
       hostPath:
         path: /Users/o.ohorodnyk/airflow-dags/airflow_logs
         type: DirectoryOrCreate
   extraVolumeMounts:
-    - name: dags-local
-      mountPath: /opt/airflow/dags
-      readOnly: true
     - name: local-logs
       mountPath: /opt/airflow/local_logs
 
 triggerer:
   extraVolumes:
-    - name: dags-local
-      hostPath:
-        path: /Users/o.ohorodnyk/airflow-dags/dags
-        type: DirectoryOrCreate
     - name: local-logs
       hostPath:
         path: /Users/o.ohorodnyk/airflow-dags/airflow_logs
         type: DirectoryOrCreate
   extraVolumeMounts:
-    - name: dags-local
-      mountPath: /opt/airflow/dags
-      readOnly: true
     - name: local-logs
       mountPath: /opt/airflow/local_logs
 
 workers:
   extraVolumes:
-    - name: dags-local
-      hostPath:
-        path: /Users/o.ohorodnyk/airflow-dags/dags
-        type: DirectoryOrCreate
     - name: local-logs
       hostPath:
         path: /Users/o.ohorodnyk/airflow-dags/airflow_logs
         type: DirectoryOrCreate
   extraVolumeMounts:
-    - name: dags-local
-      mountPath: /opt/airflow/dags
-      readOnly: true
     - name: local-logs
       mountPath: /opt/airflow/local_logs
 
