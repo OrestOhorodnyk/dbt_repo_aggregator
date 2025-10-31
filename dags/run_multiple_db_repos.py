@@ -7,6 +7,7 @@ from airflow.models import DAG
 from airflow.operators.empty import EmptyOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.operators.python import PythonOperator
+from airflow.utils.helpers import chain
 from cosmos import DbtTaskGroup, ProfileConfig, ProjectConfig, ExecutionConfig
 from cosmos.profiles import PostgresUserPasswordProfileMapping
 
@@ -65,7 +66,7 @@ with DAG(
         # executor_config=K8S_EXECUTOR_CONFIG,
     )
 
-    # Dynamically create a DbtTaskGroup for each submodule
+    # Dynamically create a DbtTaskGroup for each project
     dbt_groups = []
 
     for project_name, project_path in DBT_PROJECTS.items():
@@ -79,4 +80,6 @@ with DAG(
             execution_config=execution_config,
         )
         dbt_groups.append(dbt_group)
-        start >> test_postgres >> dbt_group >> end
+
+    # Chain all tasks sequentially: start -> test_postgres -> dbt_group_1 -> dbt_group_2 -> ... -> end
+    chain(start, test_postgres, *dbt_groups, end)
