@@ -7,7 +7,6 @@ from airflow.models import DAG
 from airflow.operators.empty import EmptyOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.operators.python import PythonOperator
-from airflow.utils.helpers import chain
 from cosmos import DbtTaskGroup, ProfileConfig, ProjectConfig, ExecutionConfig
 from cosmos.profiles import PostgresUserPasswordProfileMapping
 
@@ -82,4 +81,13 @@ with DAG(
         dbt_groups.append(dbt_group)
 
     # Chain all tasks sequentially: start -> test_postgres -> dbt_group_1 -> dbt_group_2 -> ... -> end
-    chain(start, test_postgres, *dbt_groups, end)
+    # Build sequential dependencies: start >> test_postgres >> dbt_groups[0] >> dbt_groups[1] >> ... >> end
+    previous_task = test_postgres
+    
+    for dbt_group in dbt_groups:
+        previous_task >> dbt_group
+        previous_task = dbt_group
+    
+    # Connect to start and end
+    start >> test_postgres
+    previous_task >> end
