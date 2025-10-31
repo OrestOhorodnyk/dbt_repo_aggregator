@@ -44,7 +44,7 @@ logging.info("Done.")
 
 # --- DAG Definition ---
 with DAG(
-    dag_id="run_multiple_db_repos",
+    dag_id="run_multiple_db_repos_k8s",
     schedule=None,
     start_date=pendulum.datetime(2023, 1, 1, tz="UTC"),
     catchup=False,
