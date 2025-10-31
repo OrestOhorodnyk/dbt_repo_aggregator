@@ -7,21 +7,15 @@ from airflow.models import DAG
 from airflow.operators.empty import EmptyOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.operators.python import PythonOperator
-from cosmos import DbtTaskGroup, ProjectConfig, ProfileConfig, ExecutionConfig
+from cosmos import DbtTaskGroup, ProfileConfig, ProjectConfig, ExecutionConfig
 from cosmos.profiles import PostgresUserPasswordProfileMapping
 
 
-# --- DBT Project Configurations ---
+# --- DBT Project Configurations (resolve relative to this DAG file to handle .worktrees links) ---
 BASE_DIR = Path(__file__).resolve().parent
 DBT_PROJECTS = {
-    "dbt_repo_1": {
-        "project_path": str(BASE_DIR / "dbt_repo_1/postgres_dbt_project"),
-        "image": "poc/dbt-orders:1.0.0",
-    },
-    "dbt_repo_2": {
-        "project_path": str(BASE_DIR / "dbt_repo_2/sales_dbt_project"),
-        "image": "poc/dbt-sales:1.0.0",
-    },
+    "dbt_repo_1": str(BASE_DIR / "dbt_repo_1/postgres_dbt_project"),
+    "dbt_repo_2": str(BASE_DIR / "dbt_repo_2/sales_dbt_project"),
 }
 
 # --- DBT Profile Configuration (shared for all projects) ---
@@ -34,15 +28,12 @@ profile_config = ProfileConfig(
     ),
 )
 
-# Environment variables for dbt (will be passed to Docker containers)
-DBT_ENV_VARS = {
-    "DBT_HOST": "postgres-service",
-    "DBT_USER": "dbt",
-    "DBT_PASS": "dbt",
-    "DBT_DBNAME": "analytics",
-    "DBT_PORT": "5432",
-}
+# --- Optional: dbt execution settings ---
+execution_config = ExecutionConfig(
+    dbt_executable_path="/home/airflow/.local/bin/dbt",  # default pip user bin in official images
+)
 
+# --- Test PostgreSQL connectivity before running dbt ---
 # --- Test PostgreSQL connectivity before running dbt ---
 def test_postgres_conn(**kwargs):
     logging.info("Testing PostgreSQL connection via PostgresHook...")
@@ -58,11 +49,11 @@ def test_postgres_conn(**kwargs):
 
 # --- DAG Definition ---
 with DAG(
-    dag_id="run_multiple_dbt_projects_cosmos_docker",
+    dag_id="run_multiple_dbt_projects_cosmos",
     schedule=None,
     start_date=pendulum.datetime(2023, 1, 1, tz="UTC"),
     catchup=False,
-    tags=["dbt", "cosmos", "docker", "dynamic"],
+    tags=["dbt", "cosmos", "dynamic"],
 ) as dag:
 
     start = EmptyOperator(task_id="start")
@@ -71,46 +62,26 @@ with DAG(
     test_postgres = PythonOperator(
         task_id="test_postgres_connection",
         python_callable=test_postgres_conn,
+        # executor_config=K8S_EXECUTOR_CONFIG,
     )
 
-    # Dynamically create a DbtTaskGroup for each project using Docker execution mode
+    # Dynamically create a DbtTaskGroup for each project
     dbt_groups = []
 
-    for project_name, project_config in DBT_PROJECTS.items():
-        project_path = project_config["project_path"]
-        docker_image = project_config["image"]
-        
-        # Project configuration
-        project_cfg = ProjectConfig(
-            project_name=project_name,
-            dbt_project_path=project_path,
-        )
-        
-        # Execution configuration for Docker
-        execution_cfg = ExecutionConfig(
-            execution_mode="docker",
-            docker_image=docker_image,
-            docker_env=DBT_ENV_VARS,
-            # Mount the dbt project directory into the Docker container
-            docker_mounts=[
-                {
-                    "source": project_path,
-                    "target": "/opt/dbt/project",
-                    "type": "bind"
-                }
-            ]
-        )
-        
-        # Create DbtTaskGroup with Docker execution
+    for project_name, project_path in DBT_PROJECTS.items():
         dbt_group = DbtTaskGroup(
             group_id=project_name,
-            project_config=project_cfg,
+            project_config=ProjectConfig(
+                project_name=project_name,
+                dbt_project_path=project_path,  # Use dbt_project_path, not project_path
+            ),
             profile_config=profile_config,
-            execution_config=execution_cfg,
+            execution_config=execution_config,
         )
         dbt_groups.append(dbt_group)
 
     # Chain all tasks sequentially: start -> test_postgres -> dbt_group_1 -> dbt_group_2 -> ... -> end
+    # Build sequential dependencies: start >> test_postgres >> dbt_groups[0] >> dbt_groups[1] >> ... >> end
     previous_task = test_postgres
     
     for dbt_group in dbt_groups:
