@@ -116,6 +116,7 @@ with DAG(
             group_id=project_name,
             project_config=ProjectConfig(
                 project_name=project_name,
+                dbt_project_path=local_project_path,  # Local path for ProjectConfig
             ),
             profile_config=profile_config,
             render_config=render_config,
