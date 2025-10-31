@@ -112,12 +112,11 @@ with DAG(
         }
         
         # Create DbtTaskGroup with Kubernetes execution
+        # Note: When using RenderConfig.dbt_project_path, ProjectConfig.dbt_project_path must be omitted
+        # Project name can be derived from the project structure
         dbt_group = DbtTaskGroup(
             group_id=project_name,
-            project_config=ProjectConfig(
-                project_name=project_name,
-                dbt_project_path=local_project_path,  # Local path for ProjectConfig
-            ),
+            project_config=ProjectConfig(),  # Empty config - paths come from RenderConfig and ExecutionConfig
             profile_config=profile_config,
             render_config=render_config,
             execution_config=execution_config,
