@@ -35,11 +35,11 @@ web:
   extraVolumes:
     - name: dags-local
       hostPath:
-        path: /Users/o.ohorodnyk/airflow-dags/dags
+        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/dags
         type: DirectoryOrCreate
     - name: local-logs
       hostPath:
-        path: /Users/o.ohorodnyk/airflow-dags/airflow_logs
+        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/airflow_logs
         type: DirectoryOrCreate
   extraVolumeMounts:
     - name: dags-local
@@ -52,11 +52,11 @@ scheduler:
   extraVolumes:
     - name: dags-local
       hostPath:
-        path: /Users/o.ohorodnyk/airflow-dags/dags
+        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/dags
         type: DirectoryOrCreate
     - name: local-logs
       hostPath:
-        path: /Users/o.ohorodnyk/airflow-dags/airflow_logs
+        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/airflow_logs
         type: DirectoryOrCreate
   extraVolumeMounts:
     - name: dags-local
@@ -69,11 +69,11 @@ dagProcessor:
   extraVolumes:
     - name: dags-local
       hostPath:
-        path: /Users/o.ohorodnyk/airflow-dags/dags
+        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/dags
         type: DirectoryOrCreate
     - name: local-logs
       hostPath:
-        path: /Users/o.ohorodnyk/airflow-dags/airflow_logs
+        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/airflow_logs
         type: DirectoryOrCreate
   extraVolumeMounts:
     - name: dags-local
@@ -86,11 +86,11 @@ triggerer:
   extraVolumes:
     - name: dags-local
       hostPath:
-        path: /Users/o.ohorodnyk/airflow-dags/dags
+        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/dags
         type: DirectoryOrCreate
     - name: local-logs
       hostPath:
-        path: /Users/o.ohorodnyk/airflow-dags/airflow_logs
+        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/airflow_logs
         type: DirectoryOrCreate
   extraVolumeMounts:
     - name: dags-local
@@ -103,11 +103,11 @@ workers:
   extraVolumes:
     - name: dags-local
       hostPath:
-        path: /Users/o.ohorodnyk/airflow-dags/dags
+        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/dags
         type: DirectoryOrCreate
     - name: local-logs
       hostPath:
-        path: /Users/o.ohorodnyk/airflow-dags/airflow_logs
+        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/airflow_logs
         type: DirectoryOrCreate
   extraVolumeMounts:
     - name: dags-local
