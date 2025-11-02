@@ -69,7 +69,7 @@ web:
   extraVolumes:
     - name: local-logs
       hostPath:
-        path: /Users/o.ohorodnyk/airflow-dags/airflow_logs
+        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/airflow_logs
         type: DirectoryOrCreate
   extraVolumeMounts:
     - name: local-logs
@@ -79,7 +79,7 @@ scheduler:
   extraVolumes:
     - name: local-logs
       hostPath:
-        path: /Users/o.ohorodnyk/airflow-dags/airflow_logs
+        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/airflow_logs
         type: DirectoryOrCreate
   extraVolumeMounts:
     - name: local-logs
@@ -90,7 +90,7 @@ dagProcessor:
   extraVolumes:
     - name: local-logs
       hostPath:
-        path: /Users/o.ohorodnyk/airflow-dags/airflow_logs
+        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/airflow_logs
         type: DirectoryOrCreate
   extraVolumeMounts:
     - name: local-logs
@@ -101,7 +101,7 @@ triggerer:
   extraVolumes:
     - name: local-logs
       hostPath:
-        path: /Users/o.ohorodnyk/airflow-dags/airflow_logs
+        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/airflow_logs
         type: DirectoryOrCreate
   extraVolumeMounts:
     - name: local-logs
