@@ -1,0 +1,21 @@
+name: 'sales_dbt_project'
+version: '1.0.0'
+profile: 'sales_dbt'
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+
+models:
+  sales_dbt_project:
+    silver:
+      +schema: silver
+      +materialized: view
+    gold:
+      +schema: gold
+      +materialized: table
+
+seeds:
+  sales_dbt_project:
+    +schema: raw
+    +quote_columns: false

@@ -1,7 +1,16 @@
-executor: KubernetesExecutor
+# Changed to LocalExecutor so KubernetesPodOperator (used by Cosmos) can create pods independently
+# KubernetesExecutor intercepts all tasks and uses worker image template, preventing custom images
+# LocalExecutor is simpler than CeleryExecutor and works for this use case
+executor: LocalExecutor
 
 fernetKey: "z18LcO61ndDxxw6doJFpKbU/00xu9xd+rmH5Jo0u66A="
 webserverSecretKey: "uMfJGfu+wyyfw0NRz1x1rOeldetb+oRKr9lJxuZB+XI="
+
+images:
+  airflow:
+    repository: poc/airflow-cosmos
+    tag: "3.0.6"
+    pullPolicy: IfNotPresent
 
 airflow:
   config:
@@ -10,12 +19,21 @@ airflow:
       remote_logging: "False"
       dag_dir_list_interval: 10
     kubernetes:
+      # Use 'ip' method to fetch logs by IP instead of hostname
+      # Note: For pods that don't expose log server, logs should be written to shared volume
       worker_pods_log_fetch_method: "ip"
       use_local_logs: true
-      delete_worker_pods: true
+      # Temporarily set to false to keep pods for debugging
+      # Change back to true after fixing the entrypoint issue
+      delete_worker_pods: false
       worker_pods_creation_batch_size: 1
       worker_pods_pending_timeout: 300
       logs_volume_subpath: ""
+      # Disable log serving for Kubernetes pods (since dbt pods don't expose log server)
+      # Logs will be read from shared volume instead
+      worker_pods_queued_timeout: 300
+      # Ensure logs are fetched from volume, not HTTP endpoint
+      worker_pods_readiness_timeout: 60
 
 connections:
   - conn_id: postgres_dbt
@@ -35,11 +53,11 @@ web:
   extraVolumes:
     - name: dags-local
       hostPath:
-        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/dags
+        path: "/Users/oohor/Documents/airflow on k8s/dbt_repo_aggregator/dags"
         type: DirectoryOrCreate
     - name: local-logs
       hostPath:
-        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/airflow_logs
+        path: "/Users/oohor/Documents/airflow on k8s/dbt_repo_aggregator/airflow_logs"
         type: DirectoryOrCreate
   extraVolumeMounts:
     - name: dags-local
@@ -52,11 +70,11 @@ scheduler:
   extraVolumes:
     - name: dags-local
       hostPath:
-        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/dags
+        path: "/Users/oohor/Documents/airflow on k8s/dbt_repo_aggregator/dags"
         type: DirectoryOrCreate
     - name: local-logs
       hostPath:
-        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/airflow_logs
+        path: "/Users/oohor/Documents/airflow on k8s/dbt_repo_aggregator/airflow_logs"
         type: DirectoryOrCreate
   extraVolumeMounts:
     - name: dags-local
@@ -69,11 +87,11 @@ dagProcessor:
   extraVolumes:
     - name: dags-local
       hostPath:
-        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/dags
+        path: "/Users/oohor/Documents/airflow on k8s/dbt_repo_aggregator/dags"
         type: DirectoryOrCreate
     - name: local-logs
       hostPath:
-        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/airflow_logs
+        path: "/Users/oohor/Documents/airflow on k8s/dbt_repo_aggregator/airflow_logs"
         type: DirectoryOrCreate
   extraVolumeMounts:
     - name: dags-local
@@ -86,11 +104,11 @@ triggerer:
   extraVolumes:
     - name: dags-local
       hostPath:
-        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/dags
+        path: "/Users/oohor/Documents/airflow on k8s/dbt_repo_aggregator/dags"
         type: DirectoryOrCreate
     - name: local-logs
       hostPath:
-        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/airflow_logs
+        path: "/Users/oohor/Documents/airflow on k8s/dbt_repo_aggregator/airflow_logs"
         type: DirectoryOrCreate
   extraVolumeMounts:
     - name: dags-local
@@ -103,11 +121,11 @@ workers:
   extraVolumes:
     - name: dags-local
       hostPath:
-        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/dags
+        path: "/Users/oohor/Documents/airflow on k8s/dbt_repo_aggregator/dags"
         type: DirectoryOrCreate
     - name: local-logs
       hostPath:
-        path: /Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/airflow_logs
+        path: "/Users/oohor/Documents/airflow on k8s/dbt_repo_aggregator/airflow_logs"
         type: DirectoryOrCreate
   extraVolumeMounts:
     - name: dags-local

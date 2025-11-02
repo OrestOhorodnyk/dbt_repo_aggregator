@@ -1,0 +1,21 @@
+# Exclude profiles directory - Cosmos generates profiles dynamically
+profiles/
+
+# Exclude other files that shouldn't be in the image
+.git/
+.gitignore
+*.md
+README.md
+.dockerignore
+*.fixed
+*.bak
+*.swp
+*.pyc
+__pycache__/
+.env
+.env.local
+
+# Keep target/ directory (for manifest.json)
+# Keep dbt_project.yml and other dbt files
+# Keep models/, seeds/, macros/, etc.
+
