@@ -18,12 +18,16 @@ from kubernetes.client import models as k8s
 DBT_IMAGES = {
     "dbt_repo_1": {
         "image": "poc/dbt-orders:1.0.3",
-        "manifest": "/opt/airflow/dags/manifests/dbt_orders_stub/target/manifest.json",
+        # Manifest path - sync_manifests_from_gcs writes to shared local_logs volume
+        # This is accessible by all pods (scheduler, dagProcessor, etc.)
+        "manifest": "/opt/airflow/local_logs/manifests/dbt_orders_stub/target/manifest.json",
         "render_path": "/opt/airflow/dags/manifests/dbt_orders_stub",  # For RenderConfig
     },
     "dbt_repo_2": {
-        "image": "poc/dbt-sales:1.0.1",  
-        "manifest": "/opt/airflow/dags/manifests/dbt_sales_stub/target/manifest.json",
+        "image": "poc/dbt-sales:1.0.1",
+        # Manifest path - sync_manifests_from_gcs writes to shared local_logs volume
+        # This is accessible by all pods (scheduler, dagProcessor, etc.)
+        "manifest": "/opt/airflow/local_logs/manifests/dbt_sales_stub/target/manifest.json",
         "render_path": "/opt/airflow/dags/manifests/dbt_sales_stub",  # For RenderConfig
     },
 }
@@ -36,6 +40,8 @@ profile_config = ProfileConfig(
         profile_args={"schema": "analytics"},
     ),
 )
+
+
 
 
 with DAG(
@@ -51,6 +57,9 @@ with DAG(
     previous = start
 
     for repo, cfg in DBT_IMAGES.items():
+        # Manifest path - must be local filesystem path
+        # If using GCS, run sync_manifests_from_gcs.py before DAG deployment
+        # Cosmos requires manifest at DAG parse time, not runtime
         manifest_path = cfg["manifest"]
 
         project_config = ProjectConfig(

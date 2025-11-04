@@ -1,0 +1,8 @@
+# Requirements for sync_manifests_from_gcs.py
+# Install with: pip install -r sync_requirements.txt
+
+# Option 1: Standalone (recommended for local use)
+google-cloud-storage>=2.10.0
+
+# Option 2: If running inside Airflow
+# apache-airflow-providers-google>=8.0.0

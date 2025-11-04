@@ -48,6 +48,12 @@ connections:
     conn_type: kubernetes
     conn_extra: '{"in_cluster": true, "namespace": "airflow"}'
 
+  - conn_id: google_cloud_default
+    conn_type: google_cloud_platform
+    # Keyfile path - file is mounted at /opt/airflow/dags/utils/gcp-key.json
+    # The GCSHook will use this connection automatically
+    conn_extra: '{"key_path": "/opt/airflow/dags/utils/gcp-key.json"}'
+
 # ───────────── DAG + LOG host mounts ─────────────
 web:
   extraVolumes:

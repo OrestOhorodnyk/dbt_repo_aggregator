@@ -7,3 +7,8 @@ venv/
 .DS_Store
 .user.yml
 local.session.sql
+
+# GCP Service Account Key - DO NOT COMMIT
+gcp-key.json
+*.json.key
+*-key.json
