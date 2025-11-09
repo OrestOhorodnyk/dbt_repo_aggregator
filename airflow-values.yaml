@@ -13,6 +13,9 @@ images:
     pullPolicy: IfNotPresent
 
 airflow:
+  migrateDatabase: true
+  waitForMigrations:
+    enabled: false
   config:
     core:
       base_log_folder: /opt/airflow/local_logs
@@ -59,11 +62,11 @@ web:
   extraVolumes:
     - name: dags-local
       hostPath:
-        path: "/Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/dags"
+        path: "/Users/oohor/Documents/airflow on k8s/dbt_repo_aggregator/dags"
         type: DirectoryOrCreate
     - name: local-logs
       hostPath:
-        path: "/Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/airflow_logs"
+        path: "/Users/oohor/Documents/airflow on k8s/dbt_repo_aggregator/airflow_logs"
         type: DirectoryOrCreate
   extraVolumeMounts:
     - name: dags-local
@@ -73,14 +76,16 @@ web:
       mountPath: /opt/airflow/local_logs
 
 scheduler:
+  enabled: true
+  replicas: 1
   extraVolumes:
     - name: dags-local
       hostPath:
-        path: "/Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/dags"
+        path: "/Users/oohor/Documents/airflow on k8s/dbt_repo_aggregator/dags"
         type: DirectoryOrCreate
     - name: local-logs
       hostPath:
-        path: "/Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/airflow_logs"
+        path: "/Users/oohor/Documents/airflow on k8s/dbt_repo_aggregator/airflow_logs"
         type: DirectoryOrCreate
   extraVolumeMounts:
     - name: dags-local
@@ -89,15 +94,103 @@ scheduler:
     - name: local-logs
       mountPath: /opt/airflow/local_logs
 
+  extraContainers:
+    - name: dbt-git-sync
+      image: poc/dbt-postgres:1.9.1-arm
+      command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          echo "Starting dbt repo sync + conditional compile..."
+          GIT_CONFIG_FILE=/tmp/gitconfig
+          git config --file "$GIT_CONFIG_FILE" --add safe.directory /opt/airflow/dags
+          git config --file "$GIT_CONFIG_FILE" --add safe.directory /opt/airflow/dags/dbt_repo_1
+          git config --file "$GIT_CONFIG_FILE" --add safe.directory /opt/airflow/dags/dbt_repo_2
+          export GIT_CONFIG_SYSTEM=$GIT_CONFIG_FILE
+          cd /opt/airflow/dags
+          mkdir -p /opt/airflow/dags/manifests
+
+          while true; do
+            for repo in dbt_repo_1 dbt_repo_2; do
+              if [ ! -d "$repo/.git" ]; then
+                echo "📥 Cloning $repo..."
+                git clone https://github.com/OrestOhorodnyk/$repo.git
+                changed=true
+              else
+                echo "🔄 Checking $repo for updates..."
+                cd $repo
+                GIT_OUTPUT=$(git pull --ff-only)
+                cd ..
+                echo "$GIT_OUTPUT"
+                if echo "$GIT_OUTPUT" | grep -q -e "Already up to date"; then
+                  changed=false
+                else
+                  changed=true
+                fi
+              fi
+
+              PROJECT_PATH=$(find "/opt/airflow/dags/$repo" -type f -name dbt_project.yml -exec dirname {} \; | head -n 1)
+
+              if [ -z "$PROJECT_PATH" ]; then
+                echo "⚠️ No dbt_project.yml found in $repo — skipping compile."
+                continue
+              fi
+
+              if [ "$changed" = true ]; then
+                echo "🧱 Changes detected in $repo — cleaning + compiling..."
+                 echo "🧱 Changes detected in $repo — cleaning + compiling..."
+                 dbt deps --project-dir "$PROJECT_PATH" --profiles-dir "$PROJECT_PATH/profiles" --target dev || echo "⚠️ dbt deps failed"
+                 dbt clean --project-dir "$PROJECT_PATH" --profiles-dir "$PROJECT_PATH/profiles" || echo "⚠️ dbt clean failed"
+                 dbt compile --project-dir "$PROJECT_PATH" --profiles-dir "$PROJECT_PATH/profiles" --target dev || echo "⚠️ dbt compile failed"
+
+                if [ -f "$PROJECT_PATH/target/manifest.json" ]; then
+                  cp "$PROJECT_PATH/target/manifest.json" /opt/airflow/dags/manifests/${repo}_manifest.json
+                  touch /opt/airflow/dags/multiple_db_repos_with_extra_containers.py
+                  echo "✅ Manifest for $repo updated and DAG touched."
+                else
+                  echo "⚠️ No manifest.json found for $repo — skipping copy."
+                fi
+              else
+                echo "✅ $repo is up to date — skipping compile."
+              fi
+            done
+
+            echo "⏰ Next check in 1 minute..."
+            sleep 60
+          done
+
+      volumeMounts:
+        - name: dags-local
+          mountPath: /opt/airflow/dags
+      env:
+        - name: DBT_HOST
+          value: "postgres-service.airflow.svc.cluster.local"
+        - name: DBT_USER
+          value: "dbt"
+        - name: DBT_PASS
+          value: "dbt"
+        - name: DBT_PORT
+          value: "5432"
+        - name: DBT_DBNAME
+          value: "analytics"
+        - name: DBT_SCHEMA
+          value: "public"
+      securityContext:
+        runAsUser: 50000
+        runAsGroup: 50000
+
+  # using custom image; no runtime installs needed
+
 dagProcessor:
   extraVolumes:
     - name: dags-local
       hostPath:
-        path: "/Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/dags"
+        path: "/Users/oohor/Documents/airflow on k8s/dbt_repo_aggregator/dags"
         type: DirectoryOrCreate
     - name: local-logs
       hostPath:
-        path: "/Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/airflow_logs"
+        path: "/Users/oohor/Documents/airflow on k8s/dbt_repo_aggregator/airflow_logs"
         type: DirectoryOrCreate
   extraVolumeMounts:
     - name: dags-local
@@ -110,11 +203,11 @@ triggerer:
   extraVolumes:
     - name: dags-local
       hostPath:
-        path: "/Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/dags"
+        path: "/Users/oohor/Documents/airflow on k8s/dbt_repo_aggregator/dags"
         type: DirectoryOrCreate
     - name: local-logs
       hostPath:
-        path: "/Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/airflow_logs"
+        path: "/Users/oohor/Documents/airflow on k8s/dbt_repo_aggregator/airflow_logs"
         type: DirectoryOrCreate
   extraVolumeMounts:
     - name: dags-local
@@ -127,11 +220,11 @@ workers:
   extraVolumes:
     - name: dags-local
       hostPath:
-        path: "/Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/dags"
+        path: "/Users/oohor/Documents/airflow on k8s/dbt_repo_aggregator/dags"
         type: DirectoryOrCreate
     - name: local-logs
       hostPath:
-        path: "/Users/o.ohorodnyk/Documents/repositoties/dbt_repo_aggregator/airflow_logs"
+        path: "/Users/oohor/Documents/airflow on k8s/dbt_repo_aggregator/airflow_logs"
         type: DirectoryOrCreate
   extraVolumeMounts:
     - name: dags-local
