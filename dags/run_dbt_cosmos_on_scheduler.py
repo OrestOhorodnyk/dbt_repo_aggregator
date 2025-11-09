@@ -44,7 +44,7 @@ def test_postgres_conn(**kwargs):
             logging.info(f"✅ Connected successfully! PostgreSQL version: {version}")
 
 with DAG(
-    dag_id="multiple_db_repos_with_extra_containers",
+    dag_id="run_dbt_cosmos_on_scheduler",
     schedule=None,
     start_date=pendulum.datetime(2023, 1, 1, tz="UTC"),
     catchup=False,

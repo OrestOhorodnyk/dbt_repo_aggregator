@@ -134,6 +134,9 @@ docker build -t poc/airflow-cosmos:3.0.6 -f Dockerfile .
 # Example dbt image
 docker build -t poc/dbt-orders:1.0.3 -f Dockerfile.dbt-postgres .
 
+docker build -t poc/dbt-postgres:1.9.1-arm -f Dockerfile.dbt-postgres .
+
+
 # Load into Colima if needed
 docker save poc/dbt-orders:1.0.3 | colima image load
 ```
@@ -214,6 +217,7 @@ Ensure the dbt image bundles an entrypoint that:
 - Inspect dbt pod logs (after a run):
   ```bash
   kubectl logs -n airflow <dbt-task-pod-name>
+  kubectl logs -n airflow airflow-scheduler-0 -c dbt-git-sync -f
   ```
 
 ## Notes

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import pendulum
 from airflow.models import DAG
 from airflow.operators.empty import EmptyOperator
@@ -17,26 +15,20 @@ from kubernetes.client import models as k8s
 
 DBT_IMAGES = {
     "dbt_repo_1": {
-        "image": "poc/dbt-orders:1.0.3",
-        # Manifest path - sync_manifests_from_gcs writes to shared local_logs volume
-        # This is accessible by all pods (scheduler, dagProcessor, etc.)
-        "manifest": "/opt/airflow/local_logs/manifests/dbt_orders_stub/target/manifest.json",
-        "render_path": "/opt/airflow/dags/manifests/dbt_orders_stub",  # For RenderConfig
+        "image": "poc/dbt-orders:1.0.5",
+        "manifest": "/opt/airflow/dags/manifests/dbt_repo_1_manifest.json",
     },
     "dbt_repo_2": {
-        "image": "poc/dbt-sales:1.0.1",
-        # Manifest path - sync_manifests_from_gcs writes to shared local_logs volume
-        # This is accessible by all pods (scheduler, dagProcessor, etc.)
-        "manifest": "/opt/airflow/local_logs/manifests/dbt_sales_stub/target/manifest.json",
-        "render_path": "/opt/airflow/dags/manifests/dbt_sales_stub",  # For RenderConfig
+        "image": "poc/dbt-sales:1.0.5",
+        "manifest": "/opt/airflow/dags/manifests/dbt_repo_2_manifest.json",
     },
 }
 
 profile_config = ProfileConfig(
-    profile_name="postgres_profile",
+    profile_name="postgres_profile", # profile name from dbt project/profiles/profiles.yml (first line)
     target_name="dev",
     profile_mapping=PostgresUserPasswordProfileMapping(
-        conn_id="postgres_dbt",
+        conn_id="postgres_dbt",      # airflow cinnection to connect to the target db
         profile_args={"schema": "analytics"},
     ),
 )
@@ -45,11 +37,13 @@ profile_config = ProfileConfig(
 
 
 with DAG(
-    dag_id="run_dbt_projects_from_docker_images",
+    dag_id="run-dbt-projects-cosmos-k8s-additional-containers",
     start_date=pendulum.datetime(2023, 1, 1, tz="UTC"),
     schedule=None,
     catchup=False,
     tags=["dbt", "cosmos", "kubernetes"],
+    max_active_tasks=2,
+    max_active_runs=1,
 ) as dag:
 
     start = EmptyOperator(task_id="start")
@@ -57,9 +51,6 @@ with DAG(
     previous = start
 
     for repo, cfg in DBT_IMAGES.items():
-        # Manifest path - must be local filesystem path
-        # If using GCS, run sync_manifests_from_gcs.py before DAG deployment
-        # Cosmos requires manifest at DAG parse time, not runtime
         manifest_path = cfg["manifest"]
 
         project_config = ProjectConfig(
@@ -68,7 +59,7 @@ with DAG(
         )
 
         render_config = RenderConfig(
-            dbt_project_path=cfg.get("render_path", f"/opt/airflow/dags/manifests/{repo}"),
+            dbt_project_path=cfg.get("render_path", f"/opt/airflow/dags/manifests/{repo}__manifest.json"),
         )
 
         execution_config = ExecutionConfig(
@@ -82,7 +73,6 @@ with DAG(
                     k8s.V1Container(
                         name="base",
                         image=cfg["image"],
-                        # No volume mounts - entrypoint will write profiles.yml to /tmp/airflow_cosmos
                     )
                 ],
             ),
@@ -110,8 +100,6 @@ with DAG(
                     "DBT_PASS": "dbt",
                     "DBT_DBNAME": "analytics",
                     "DBT_PORT": "5432",
-                    # Set profiles directory to where ConfigMap is mounted
-                    "DBT_PROFILES_DIR": "/tmp/airflow_cosmos",
                 },
             },
         )

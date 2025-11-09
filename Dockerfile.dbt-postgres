@@ -1,0 +1,29 @@
+# ---------- Stage 1: Lightweight dbt-postgres image for ARM ----------
+FROM python:3.11-slim
+
+# Install git (needed for repo sync) and clean up afterwards
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install dbt-postgres
+RUN pip install --no-cache-dir dbt-postgres==1.9.1
+
+# Set working directory
+WORKDIR /opt/dbt
+
+# --- Default environment variables for dbt profiles using env_var() ---
+ENV DBT_HOST=postgres-service \
+    DBT_USER=dbt \
+    DBT_PASS=dbt \
+    DBT_PORT=5432 \
+    DBT_DBNAME=analytics \
+    DBT_SCHEMA=public \
+    DBT_THREADS=4
+
+# Optional: suppress Python buffering (better logs)
+ENV PYTHONUNBUFFERED=1
+
+# Default command
+ENTRYPOINT ["dbt"]
+CMD ["--help"]
